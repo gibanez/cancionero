@@ -41,6 +41,11 @@ export class AppHeader extends LitElement {
     navigate('/playlists');
   }
 
+  goData() {
+    this.menuOpen = false;
+    navigate('/data');
+  }
+
   logout() {
     this.menuOpen = false;
     authService.logout();
@@ -66,6 +71,7 @@ export class AppHeader extends LitElement {
             <div class="absolute left-0 top-9 z-30 w-44 bg-white text-ink-primary rounded-lg shadow-xl border border-ink-border py-1">
               <button type="button" class="block w-full text-left px-4 py-2 text-sm hover:bg-brand-light" @click=${this.goPlaylists}>Mis listas</button>
               <button type="button" class="block w-full text-left px-4 py-2 text-sm hover:bg-brand-light" @click=${this.search}>Buscar</button>
+              <button type="button" class="block w-full text-left px-4 py-2 text-sm hover:bg-brand-light" @click=${this.goData}>Datos</button>
               <button type="button" class="block w-full text-left px-4 py-2 text-sm hover:bg-brand-light" @click=${this.logout}>Cerrar sesión</button>
             </div>
           ` : ''}

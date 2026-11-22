@@ -15,7 +15,7 @@ function findOwned(id, userId) {
 
 function withCount(id) {
   return db.prepare(`
-    SELECT p.*, COUNT(ps.song_id) AS songCount
+    SELECT p.*, COUNT(ps.song_id) AS songCount, 0 AS hasSong
     FROM playlists p
     LEFT JOIN playlist_songs ps ON ps.playlist_id = p.id
     WHERE p.id = ?
@@ -23,19 +23,38 @@ function withCount(id) {
   `).get(id);
 }
 
-function listOwned(userId) {
+function listOwned(userId, songId = null) {
+  const hasSongSql = songId
+    ? `CASE WHEN EXISTS (
+         SELECT 1 FROM playlist_songs ps2
+         WHERE ps2.playlist_id = p.id AND ps2.song_id = ?
+       ) THEN 1 ELSE 0 END AS hasSong`
+    : `0 AS hasSong`;
+  const params = songId ? [songId, userId] : [userId];
   return db.prepare(`
-    SELECT p.*, COUNT(ps.song_id) AS songCount
+    SELECT p.*, COUNT(ps.song_id) AS songCount, ${hasSongSql}
     FROM playlists p
     LEFT JOIN playlist_songs ps ON ps.playlist_id = p.id
     WHERE p.user_id = ?
     GROUP BY p.id
     ORDER BY p.id ASC
-  `).all(userId);
+  `).all(...params);
+}
+
+function orderedSongs(playlistId) {
+  return db.prepare(`
+    SELECT s.id, s.category_id, s.title, s.author, s.lyrics
+    FROM playlist_songs ps
+    JOIN songs s ON s.id = ps.song_id
+    WHERE ps.playlist_id = ?
+    ORDER BY ps.position ASC, ps.rowid ASC
+  `).all(playlistId);
 }
 
 router.get('/', (req, res) => {
-  res.json(listOwned(req.user.id));
+  const raw = String(req.query.songId || '');
+  const songId = /^\d+$/.test(raw) ? Number(raw) : null;
+  res.json(listOwned(req.user.id, songId));
 });
 
 router.post('/', (req, res) => {
@@ -85,14 +104,7 @@ router.get('/:id/songs', (req, res) => {
   if (!findOwned(req.params.id, req.user.id)) {
     return res.status(404).json({ error: 'Lista no encontrada' });
   }
-  const songs = db.prepare(`
-    SELECT s.id, s.category_id, s.title, s.author, s.lyrics
-    FROM playlist_songs ps
-    JOIN songs s ON s.id = ps.song_id
-    WHERE ps.playlist_id = ?
-    ORDER BY ps.position ASC, ps.rowid ASC
-  `).all(req.params.id);
-  return res.json(songs);
+  return res.json(orderedSongs(req.params.id));
 });
 
 router.post('/:id/songs', (req, res) => {
@@ -127,6 +139,46 @@ router.post('/:id/songs', (req, res) => {
   })();
 
   return res.json(withCount(req.params.id));
+});
+
+router.put('/:id/songs/reorder', (req, res) => {
+  if (!findOwned(req.params.id, req.user.id)) {
+    return res.status(404).json({ error: 'Lista no encontrada' });
+  }
+
+  const body = req.body || {};
+  const songId = Number(body.songId);
+  const direction = body.direction;
+  if (!Number.isInteger(songId) || (direction !== 'up' && direction !== 'down')) {
+    return res.status(400).json({ error: 'Se requieren songId y direction (up o down)' });
+  }
+
+  const rows = db.prepare(`
+    SELECT song_id, position FROM playlist_songs
+    WHERE playlist_id = ?
+    ORDER BY position ASC, rowid ASC
+  `).all(req.params.id);
+  const index = rows.findIndex((row) => Number(row.song_id) === songId);
+  if (index < 0) {
+    return res.status(404).json({ error: 'La canción no está en la lista' });
+  }
+
+  const target = direction === 'up' ? index - 1 : index + 1;
+  if (target >= 0 && target < rows.length) {
+    const swapped = rows[index];
+    rows[index] = rows[target];
+    rows[target] = swapped;
+    db.transaction(() => {
+      const update = db.prepare(
+        'UPDATE playlist_songs SET position = ? WHERE playlist_id = ? AND song_id = ?'
+      );
+      rows.forEach((row, position) => {
+        update.run(position + 1, req.params.id, row.song_id);
+      });
+    })();
+  }
+
+  return res.json(orderedSongs(req.params.id));
 });
 
 router.post('/:id/share', (req, res) => {

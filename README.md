@@ -1,6 +1,6 @@
 # Cancionero
 
-Aplicación web mobile-first para gestionar un cancionero digital: categorías, letras, listas de reproducción, extracción de letras con OCR y enlaces públicos para compartir listas sin login.
+Aplicación web mobile-first para gestionar un cancionero digital: categorías, letras, listas de reproducción, extracción de letras con OCR y enlaces públicos para compartir listas sin login. Es instalable como PWA: guarda el repertorio en caché para consultarlo sin conexión y permite exportar/importar datos en JSON o CSV.
 
 Especificación de origen: [`project.md`](./project.md).
 
@@ -91,10 +91,13 @@ Los datos iniciales se cargan una sola vez (queda registrado en `app_meta`): bor
 | GET/PUT/DELETE | `/api/songs/:id` | sí | Detalle / edición / baja |
 | POST | `/api/songs` | sí | Alta de canción |
 | POST | `/api/ocr/extract` | sí | Imagen (`image`) → `{ rawText, suggestedTitle, lyrics }` |
-| GET/POST/PUT/DELETE | `/api/playlists` | sí | ABM de listas |
-| GET | `/api/playlists/:id/songs` | sí | Canciones de una lista |
+| GET/POST/PUT/DELETE | `/api/playlists` | sí | ABM de listas; `GET ?songId=` agrega `hasSong` por lista |
+| GET | `/api/playlists/:id/songs` | sí | Canciones de una lista, en orden |
 | POST | `/api/playlists/:id/songs` | sí | Agrega `songId` (o `songIds`) |
+| PUT | `/api/playlists/:id/songs/reorder` | sí | Mueve `songId` con `direction: "up"\|"down"` |
 | POST | `/api/playlists/:id/share` | sí | Genera token público y devuelve `/p/<token>` |
+| GET | `/api/data/export?format=json\|csv` | sí | Devuelve `{ filename, contentType, content }` |
+| POST | `/api/data/import` | sí | Importa `{ format, content }` y devuelve un resumen |
 | GET | `/api/public/playlists/:token` | **no** | Lista pública para compartir |
 
 ## Notas
@@ -105,3 +108,7 @@ Los datos iniciales se cargan una sola vez (queda registrado en `app_meta`): bor
 - La base SQLite se crea en `backend/cancionero.db` (configurable con `DB_PATH`).
 - Borrar una categoría también borra sus canciones (FK `ON DELETE CASCADE`).
 - Los borrados de categorías, listas y canciones usan un modal de confirmación propio (`confirm-modal`), no el `confirm` del navegador. Se cierra con CANCELAR, Escape o haciendo clic fuera.
+- El modal para agregar canciones marca con **YA ESTÁ** las listas que ya contienen esa canción y muestra un toast con el resultado; el toast vive fuera del `#app` para sobrevivir a los cambios de ruta.
+- Desde el menú **Datos** se descarga un JSON completo (categorías, canciones y listas con sus canciones) o un CSV para planillas (`categoria,titulo,autor,letra,listas`, separando los nombres de listas con `|`). Importar **agrega** lo que falta: no borra ni sobrescribe canciones existentes, y las listas nuevas quedan privadas.
+- Las canciones dentro de una lista se reordenan con las flechas ↑/↓; el backend reescribe `position` de forma ordenada dentro de una transacción.
+- El service worker (`public/sw.js`) cachea el shell y los assets, pero **nunca** cachea `/api/*`. Se registra sólo en el bundle de producción; en `npm run dev` no se activa.

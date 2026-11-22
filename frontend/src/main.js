@@ -10,6 +10,7 @@ import './views/song-form-view.js';
 import './views/playlists-view.js';
 import './views/playlist-songs-view.js';
 import './views/public-playlist-view.js';
+import './views/data-view.js';
 
 import { addRoute, configure, navigate, start } from './router.js';
 import { authService } from './services/auth.service.js';
@@ -38,6 +39,7 @@ addRoute('/playlists/:id', 'playlist-songs', 'playlist-songs-view', {
 addRoute('/p/:token', 'public-playlist', 'public-playlist-view', {
   title: 'LISTA COMPARTIDA', showSearch: false, showMenu: false
 });
+addRoute('/data', 'data', 'data-view', { title: 'DATOS', nav: 'inicio' });
 
 const root = document.getElementById('app');
 
@@ -94,3 +96,12 @@ function render(view) {
 
 configure(render);
 start();
+
+// El service worker sólo se registra en el bundle de producción (Docker / Vite build).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Si el navegador no permite SW, la app sigue funcionando online.
+    });
+  });
+}
