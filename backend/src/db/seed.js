@@ -58,9 +58,9 @@ function placeholderLyrics(title, author) {
     'o subiendo una imagen con OCR.';
 }
 
-const DEFAULT_USERNAME = 'viriginia';
+const DEFAULT_USERNAME = 'virginia';
 const DEFAULT_PASSWORD = 'MarVirCor';
-const LEGACY_USERNAME = 'admin';
+const LEGACY_USERNAMES = ['admin', 'viriginia'];
 
 function seed() {
   const username = process.env.ADMIN_USERNAME || DEFAULT_USERNAME;
@@ -72,7 +72,9 @@ function seed() {
   const findUser = db.prepare('SELECT id FROM users WHERE username = ?');
   let user = findUser.get(username);
   if (!user) {
-    const legacyUser = findUser.get(LEGACY_USERNAME);
+    const legacyUser = LEGACY_USERNAMES
+      .map((name) => findUser.get(name))
+      .find(Boolean);
     if (legacyUser) {
       // Migración del usuario de la demo: se conserva el id para no perder sus listas.
       const passwordHash = bcrypt.hashSync(password, 10);

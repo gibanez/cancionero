@@ -49,7 +49,7 @@ npm run dev        # http://localhost:5173
 
 Vite proxya `/api` al backend, así que no hace falta configurar CORS.
 
-- Usuario de demostración: **viriginia / MarVirCor** (configurable en `backend/.env`).
+- Usuario de demostración: **virginia / MarVirCor** (configurable en `backend/.env`).
 - El backend siembra categorías, canciones y listas la primera vez que arranca (`npm run seed` para forzar la carga).
 - Para generar el bundle: `cd frontend && npm run build` (sale en `frontend/dist`).
 
