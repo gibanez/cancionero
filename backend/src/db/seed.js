@@ -87,6 +87,16 @@ function seed() {
     }
   }
 
+  // Los datos de ejemplo se cargan una sola vez; lo que el usuario borra no se repone.
+  const isSeeded = db.prepare("SELECT 1 FROM app_meta WHERE key = 'seeded'").get();
+  if (isSeeded) return user;
+
+  // Base de una versión anterior: se marca como sembrada sin volver a insertar nada.
+  if (db.prepare('SELECT 1 FROM categories LIMIT 1').get()) {
+    db.prepare("INSERT INTO app_meta (key, value) VALUES ('seeded', 'legacy')").run();
+    return user;
+  }
+
   const insertCategory = db.prepare(
     'INSERT INTO categories (name, sort_order) VALUES (?, ?)'
   );
@@ -148,6 +158,8 @@ function seed() {
         });
       }
     });
+
+    db.prepare("INSERT INTO app_meta (key, value) VALUES ('seeded', datetime('now'))").run();
   })();
 
   return user;

@@ -54,6 +54,11 @@ db.exec(`
     FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS app_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_songs_category ON songs(category_id);
   CREATE INDEX IF NOT EXISTS idx_songs_title ON songs(title);
 `);

@@ -67,6 +67,18 @@ docker run --rm -p 3001:3001 \
 
 Abrir `http://localhost:3001`. El volumen `cancionero_data` conserva la SQLite y el modelo de Tesseract entre reinicios; sin él, los datos viven sólo dentro del contenedor. `.dockerignore` evita copiar al contexto `node_modules`, `.env`, la base SQLite y los `*.traineddata` de Windows.
 
+### Persistencia en Portainer
+
+Montá un volumen con nombre en `/data`; un **Recreate** solo cambia el contenedor, no crea el volumen:
+
+1. Containers → tu contenedor → **Duplicate/Edit**.
+2. En **Volumes**, agregá `cancionero_data` como origen (o un bind mount del host) y `/data` como destino.
+3. Redeploy.
+
+Sin ese mount, cada contenedor nuevo arranca con una SQLite vacía y se vuelven a cargar los datos de ejemplo. Con él, tus canciones y listas sobreviven a recreaciones y a actualizaciones de imagen.
+
+Los datos iniciales se cargan una sola vez (queda registrado en `app_meta`): borrar una categoría, canción o lista **no** se revierte al reiniciar.
+
 ## API
 
 | Método | Ruta | Auth | Descripción |

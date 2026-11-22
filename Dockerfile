@@ -28,6 +28,8 @@ COPY --from=frontend-builder /app/frontend/dist ./public
 
 # Directorio persistente para SQLite y modelos de Tesseract
 RUN mkdir -p /data/tesseract-cache
+# Montar un volumen con nombre (o un bind mount) en /data para conservar la base.
+VOLUME ["/data"]
 ENV DB_PATH=/data/cancionero.db
 ENV TESSERACT_CACHE_PATH=/data/tesseract-cache
 # Sobrescribir en producción: docker run -e JWT_SECRET=<secreto-largo> ...
