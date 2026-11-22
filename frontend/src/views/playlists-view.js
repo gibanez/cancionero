@@ -1,6 +1,7 @@
 import { LitElement, html } from 'lit';
 import { api } from '../services/api.service.js';
 import { navigate } from '../router.js';
+import '../components/confirm-modal.js';
 
 export class PlaylistsView extends LitElement {
   static properties = {
@@ -10,6 +11,8 @@ export class PlaylistsView extends LitElement {
     renamingId: { state: true },
     renameValue: { state: true },
     feedback: { state: true },
+    deleteTarget: { state: true },
+    deleting: { state: true },
     error: { state: true }
   };
 
@@ -21,6 +24,8 @@ export class PlaylistsView extends LitElement {
     this.renamingId = null;
     this.renameValue = '';
     this.feedback = '';
+    this.deleteTarget = null;
+    this.deleting = false;
     this.error = '';
   }
 
@@ -72,20 +77,40 @@ export class PlaylistsView extends LitElement {
     }
   }
 
-  async remove(playlist) {
-    const detail = playlist.is_public
-      ? ' El enlace público dejará de funcionar.'
-      : '';
-    if (!window.confirm(`¿Eliminar la lista "${playlist.name}"?${detail}`)) return;
+  askDelete(playlist) {
+    this.error = '';
+    this.deleteTarget = playlist;
+  }
 
+  cancelDelete() {
+    this.deleteTarget = null;
+  }
+
+  async confirmDelete() {
+    const playlist = this.deleteTarget;
+    if (!playlist || this.deleting) return;
+
+    this.deleting = true;
     this.error = '';
     try {
       await api.delete(`/playlists/${playlist.id}`);
+      this.deleteTarget = null;
       await this.load();
       this.feedback = 'Lista eliminada.';
     } catch (err) {
       this.error = err.message;
+      this.feedback = '';
+    } finally {
+      this.deleting = false;
     }
+  }
+
+  get deleteMessage() {
+    if (!this.deleteTarget) return '';
+    const detail = this.deleteTarget.is_public
+      ? '\n\nEl enlace público dejará de funcionar.'
+      : '';
+    return `¿Eliminar la lista "${this.deleteTarget.name}"?${detail}\n\nEsta acción no se puede deshacer.`;
   }
 
   async share(playlist) {
@@ -167,12 +192,23 @@ export class PlaylistsView extends LitElement {
               <div class="mt-3 flex flex-wrap gap-4 text-xs text-ink-secondary">
                 <button type="button" class="hover:text-brand-primary" @click=${() => this.startRename(playlist)}>Renombrar</button>
                 <button type="button" class="hover:text-brand-primary" @click=${() => this.share(playlist)}>Compartir</button>
-                <button type="button" class="text-brand-primary hover:underline" @click=${() => this.remove(playlist)}>Eliminar</button>
+                <button type="button" class="text-brand-primary hover:underline" @click=${() => this.askDelete(playlist)}>Eliminar</button>
               </div>
             </div>
           `)}
         </div>
       </div>
+
+      <confirm-modal
+        .open=${Boolean(this.deleteTarget)}
+        .title=${'ELIMINAR LISTA'}
+        .message=${this.deleteMessage}
+        .confirmLabel=${'ELIMINAR'}
+        .busy=${this.deleting}
+        .error=${this.error}
+        .onCancel=${() => this.cancelDelete()}
+        .onConfirm=${() => this.confirmDelete()}
+      ></confirm-modal>
     `;
   }
 }

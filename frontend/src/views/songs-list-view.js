@@ -3,6 +3,7 @@ import { api } from '../services/api.service.js';
 import { navigate } from '../router.js';
 import '../components/song-row.js';
 import '../components/playlist-modal.js';
+import '../components/confirm-modal.js';
 
 export class SongsListView extends LitElement {
   static properties = {
@@ -13,6 +14,8 @@ export class SongsListView extends LitElement {
     searchTerm: { state: true },
     modalOpen: { state: true },
     selectedSong: { state: true },
+    deleteTarget: { state: true },
+    deleting: { state: true },
     error: { state: true }
   };
 
@@ -25,6 +28,8 @@ export class SongsListView extends LitElement {
     this.searchTerm = '';
     this.modalOpen = false;
     this.selectedSong = null;
+    this.deleteTarget = null;
+    this.deleting = false;
     this.error = '';
     this.searchTimer = null;
   }
@@ -100,14 +105,35 @@ export class SongsListView extends LitElement {
     this.modalOpen = true;
   }
 
-  async remove(song) {
-    if (!window.confirm(`¿Eliminar "${song.title}"?`)) return;
+  askDelete(song) {
+    this.error = '';
+    this.deleteTarget = song;
+  }
+
+  cancelDelete() {
+    this.deleteTarget = null;
+  }
+
+  async confirmDelete() {
+    const song = this.deleteTarget;
+    if (!song || this.deleting) return;
+
+    this.deleting = true;
+    this.error = '';
     try {
       await api.delete(`/songs/${song.id}`);
+      this.deleteTarget = null;
       await this.loadSongs();
     } catch (err) {
       this.error = err.message;
+    } finally {
+      this.deleting = false;
     }
+  }
+
+  get deleteMessage() {
+    if (!this.deleteTarget) return '';
+    return `¿Eliminar la canción "${this.deleteTarget.title}"?\n\nEsta acción no se puede deshacer.`;
   }
 
   newSong() {
@@ -145,11 +171,22 @@ export class SongsListView extends LitElement {
                       .onAdd=${(item) => this.add(item)}
                       .onView=${(item) => this.view(item)}
                       .onEdit=${(item) => this.edit(item)}
-                      .onDelete=${(item) => this.remove(item)}></song-row>
+                      .onDelete=${(item) => this.askDelete(item)}></song-row>
           `)}
         </div>
 
         <playlist-modal .open=${this.modalOpen} .song=${this.selectedSong}></playlist-modal>
+
+        <confirm-modal
+          .open=${Boolean(this.deleteTarget)}
+          .title=${'ELIMINAR CANCIÓN'}
+          .message=${this.deleteMessage}
+          .confirmLabel=${'ELIMINAR'}
+          .busy=${this.deleting}
+          .error=${this.error}
+          .onCancel=${() => this.cancelDelete()}
+          .onConfirm=${() => this.confirmDelete()}
+        ></confirm-modal>
       </div>
     `;
   }

@@ -91,4 +91,5 @@ Abrir `http://localhost:3001`. El volumen `cancionero_data` conserva la SQLite y
 - El primer OCR descarga el modelo de español (`spa.traineddata`); requiere conexión la primera vez.
 - Cambiar `JWT_SECRET` en `backend/.env` (o con `-e JWT_SECRET=...` en Docker) antes de exponer el proyecto.
 - La base SQLite se crea en `backend/cancionero.db` (configurable con `DB_PATH`).
-- Borrar una categoría también borra sus canciones (FK `ON DELETE CASCADE`); la UI pide confirmación.
+- Borrar una categoría también borra sus canciones (FK `ON DELETE CASCADE`).
+- Los borrados de categorías, listas y canciones usan un modal de confirmación propio (`confirm-modal`), no el `confirm` del navegador. Se cierra con CANCELAR, Escape o haciendo clic fuera.

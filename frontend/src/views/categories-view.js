@@ -1,6 +1,7 @@
 import { LitElement, html } from 'lit';
 import { api } from '../services/api.service.js';
 import { navigate } from '../router.js';
+import '../components/confirm-modal.js';
 
 const chevron = html`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>`;
 const trashIcon = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>`;
@@ -11,6 +12,8 @@ export class CategoriesView extends LitElement {
     creating: { state: true },
     newName: { state: true },
     feedback: { state: true },
+    deleteTarget: { state: true },
+    deleting: { state: true },
     error: { state: true }
   };
 
@@ -20,6 +23,8 @@ export class CategoriesView extends LitElement {
     this.creating = false;
     this.newName = '';
     this.feedback = '';
+    this.deleteTarget = null;
+    this.deleting = false;
     this.error = '';
   }
 
@@ -55,20 +60,40 @@ export class CategoriesView extends LitElement {
     }
   }
 
-  async remove(category) {
-    const detail = category.songCount
-      ? ` Se eliminarán también sus ${category.songCount} canción(es).`
-      : '';
-    if (!window.confirm(`¿Eliminar la categoría "${category.name}"?${detail}`)) return;
+  askDelete(category) {
+    this.error = '';
+    this.deleteTarget = category;
+  }
 
+  cancelDelete() {
+    this.deleteTarget = null;
+  }
+
+  async confirmDelete() {
+    const category = this.deleteTarget;
+    if (!category || this.deleting) return;
+
+    this.deleting = true;
     this.error = '';
     try {
       await api.delete(`/categories/${category.id}`);
       this.categories = this.categories.filter((item) => item.id !== category.id);
       this.feedback = 'Categoría eliminada.';
+      this.deleteTarget = null;
     } catch (err) {
       this.error = err.message;
+      this.feedback = '';
+    } finally {
+      this.deleting = false;
     }
+  }
+
+  get deleteMessage() {
+    if (!this.deleteTarget) return '';
+    const detail = this.deleteTarget.songCount
+      ? `\n\nSe eliminarán también sus ${this.deleteTarget.songCount} canción(es). Esta acción no se puede deshacer.`
+      : '\n\nEsta acción no se puede deshacer.';
+    return `¿Eliminar la categoría "${this.deleteTarget.name}"?${detail}`;
   }
 
   render() {
@@ -107,13 +132,24 @@ export class CategoriesView extends LitElement {
               </button>
               <button type="button" aria-label="Eliminar categoría" title="Eliminar categoría"
                       class="shrink-0 p-4 pl-1 text-white/80 hover:text-white"
-                      @click=${() => this.remove(category)}>
+                      @click=${() => this.askDelete(category)}>
                 ${trashIcon}
               </button>
             </div>
           `)}
         </div>
       </div>
+
+      <confirm-modal
+        .open=${Boolean(this.deleteTarget)}
+        .title=${'ELIMINAR CATEGORÍA'}
+        .message=${this.deleteMessage}
+        .confirmLabel=${'ELIMINAR'}
+        .busy=${this.deleting}
+        .error=${this.error}
+        .onCancel=${() => this.cancelDelete()}
+        .onConfirm=${() => this.confirmDelete()}
+      ></confirm-modal>
     `;
   }
 }
