@@ -74,6 +74,7 @@ Abrir `http://localhost:3001`. El volumen `cancionero_data` conserva la SQLite y
 | POST | `/api/auth/login` | no | Devuelve `{ token, user }` |
 | GET | `/api/categories` | sí | Categorías con `songCount` |
 | POST | `/api/categories` | sí | Crea categoría (`{ "name": "..." }`) |
+| DELETE | `/api/categories/:id` | sí | Elimina la categoría y sus canciones |
 | GET | `/api/songs?categoryId=&q=` | sí | Lista filtrada |
 | GET/PUT/DELETE | `/api/songs/:id` | sí | Detalle / edición / baja |
 | POST | `/api/songs` | sí | Alta de canción |
@@ -90,3 +91,4 @@ Abrir `http://localhost:3001`. El volumen `cancionero_data` conserva la SQLite y
 - El primer OCR descarga el modelo de español (`spa.traineddata`); requiere conexión la primera vez.
 - Cambiar `JWT_SECRET` en `backend/.env` (o con `-e JWT_SECRET=...` en Docker) antes de exponer el proyecto.
 - La base SQLite se crea en `backend/cancionero.db` (configurable con `DB_PATH`).
+- Borrar una categoría también borra sus canciones (FK `ON DELETE CASCADE`); la UI pide confirmación.

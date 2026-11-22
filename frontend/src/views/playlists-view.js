@@ -73,10 +73,16 @@ export class PlaylistsView extends LitElement {
   }
 
   async remove(playlist) {
-    if (!window.confirm(`¿Eliminar la lista "${playlist.name}"?`)) return;
+    const detail = playlist.is_public
+      ? ' El enlace público dejará de funcionar.'
+      : '';
+    if (!window.confirm(`¿Eliminar la lista "${playlist.name}"?${detail}`)) return;
+
+    this.error = '';
     try {
       await api.delete(`/playlists/${playlist.id}`);
       await this.load();
+      this.feedback = 'Lista eliminada.';
     } catch (err) {
       this.error = err.message;
     }
@@ -161,7 +167,7 @@ export class PlaylistsView extends LitElement {
               <div class="mt-3 flex flex-wrap gap-4 text-xs text-ink-secondary">
                 <button type="button" class="hover:text-brand-primary" @click=${() => this.startRename(playlist)}>Renombrar</button>
                 <button type="button" class="hover:text-brand-primary" @click=${() => this.share(playlist)}>Compartir</button>
-                <button type="button" class="hover:text-brand-primary" @click=${() => this.remove(playlist)}>Eliminar</button>
+                <button type="button" class="text-brand-primary hover:underline" @click=${() => this.remove(playlist)}>Eliminar</button>
               </div>
             </div>
           `)}

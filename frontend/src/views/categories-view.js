@@ -3,12 +3,14 @@ import { api } from '../services/api.service.js';
 import { navigate } from '../router.js';
 
 const chevron = html`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>`;
+const trashIcon = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>`;
 
 export class CategoriesView extends LitElement {
   static properties = {
     categories: { state: true },
     creating: { state: true },
     newName: { state: true },
+    feedback: { state: true },
     error: { state: true }
   };
 
@@ -17,6 +19,7 @@ export class CategoriesView extends LitElement {
     this.categories = [];
     this.creating = false;
     this.newName = '';
+    this.feedback = '';
     this.error = '';
   }
 
@@ -46,6 +49,23 @@ export class CategoriesView extends LitElement {
       this.categories = [...this.categories, created];
       this.newName = '';
       this.creating = false;
+      this.feedback = 'Categoría creada.';
+    } catch (err) {
+      this.error = err.message;
+    }
+  }
+
+  async remove(category) {
+    const detail = category.songCount
+      ? ` Se eliminarán también sus ${category.songCount} canción(es).`
+      : '';
+    if (!window.confirm(`¿Eliminar la categoría "${category.name}"?${detail}`)) return;
+
+    this.error = '';
+    try {
+      await api.delete(`/categories/${category.id}`);
+      this.categories = this.categories.filter((item) => item.id !== category.id);
+      this.feedback = 'Categoría eliminada.';
     } catch (err) {
       this.error = err.message;
     }
@@ -73,16 +93,24 @@ export class CategoriesView extends LitElement {
         ` : ''}
 
         ${this.error ? html`<p class="mt-4 text-sm text-brand-primary">${this.error}</p>` : ''}
+        ${this.feedback ? html`<p class="mt-4 text-xs text-ink-secondary">${this.feedback}</p>` : ''}
         <div class="mt-4 space-y-3">
           ${this.categories.map((category) => html`
-            <button type="button" class="w-full bg-brand-primary hover:bg-brand-hover text-white p-4 rounded-lg flex justify-between items-center text-left"
-                    @click=${() => this.open(category.id)}>
-              <span>
-                <span class="block font-semibold tracking-wide">${category.name}</span>
-                <span class="block text-xs text-white/80 mt-1">Subtitle: ${category.songCount} canciones</span>
-              </span>
-              ${chevron}
-            </button>
+            <div class="bg-brand-primary hover:bg-brand-hover text-white rounded-lg flex items-center">
+              <button type="button" class="flex-1 min-w-0 p-4 text-left flex justify-between items-center gap-2"
+                      @click=${() => this.open(category.id)}>
+                <span class="min-w-0">
+                  <span class="block font-semibold tracking-wide truncate">${category.name}</span>
+                  <span class="block text-xs text-white/80 mt-1">Subtitle: ${category.songCount} canciones</span>
+                </span>
+                ${chevron}
+              </button>
+              <button type="button" aria-label="Eliminar categoría" title="Eliminar categoría"
+                      class="shrink-0 p-4 pl-1 text-white/80 hover:text-white"
+                      @click=${() => this.remove(category)}>
+                ${trashIcon}
+              </button>
+            </div>
           `)}
         </div>
       </div>

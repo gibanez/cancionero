@@ -32,6 +32,17 @@ router.post('/', (req, res) => {
   });
 });
 
+router.delete('/:id', (req, res) => {
+  const category = db.prepare('SELECT id FROM categories WHERE id = ?').get(req.params.id);
+  if (!category) {
+    return res.status(404).json({ error: 'Categoría no encontrada' });
+  }
+
+  // Las canciones se borran en cascada (FK ON DELETE CASCADE).
+  db.prepare('DELETE FROM categories WHERE id = ?').run(req.params.id);
+  return res.status(204).end();
+});
+
 router.get('/', (req, res) => {
   const rows = db.prepare(`
     SELECT c.id, c.name, c.sort_order, COUNT(s.id) AS songCount
