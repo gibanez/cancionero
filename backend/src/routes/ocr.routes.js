@@ -1,8 +1,17 @@
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const express = require('express');
 const multer = require('multer');
 const Tesseract = require('tesseract.js');
 
 const router = express.Router();
+
+// En Docker apunta a /data para que el modelo de español persista entre reinicios.
+const CACHE_PATH = process.env.TESSERACT_CACHE_PATH
+  ? path.resolve(process.env.TESSERACT_CACHE_PATH)
+  : path.join(os.tmpdir(), 'cancionero-tesseract');
+fs.mkdirSync(CACHE_PATH, { recursive: true });
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -21,7 +30,9 @@ router.post('/extract', upload.single('image'), async (req, res, next) => {
   }
 
   try {
-    const { data } = await Tesseract.recognize(req.file.buffer, 'spa');
+    const { data } = await Tesseract.recognize(req.file.buffer, 'spa', {
+      cachePath: CACHE_PATH
+    });
     const rawText = (data.text || '').replace(/\r/g, '');
     const lines = rawText.split('\n').map((line) => line.trim()).filter(Boolean);
     const suggestedTitle = lines.shift() || '';

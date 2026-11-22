@@ -53,6 +53,20 @@ Vite proxya `/api` al backend, así que no hace falta configurar CORS.
 - El backend siembra categorías, canciones y listas la primera vez que arranca (`npm run seed` para forzar la carga).
 - Para generar el bundle: `cd frontend && npm run build` (sale en `frontend/dist`).
 
+## Docker
+
+El `Dockerfile` compila el frontend y sirve la API y la SPA juntas desde Express en el puerto 3001:
+
+```bash
+docker build -t cancionero .
+docker run --rm -p 3001:3001 \
+  -e JWT_SECRET=<secreto-largo-y-aleatorio> \
+  -v cancionero_data:/data \
+  cancionero
+```
+
+Abrir `http://localhost:3001`. El volumen `cancionero_data` conserva la SQLite y el modelo de Tesseract entre reinicios; sin él, los datos viven sólo dentro del contenedor. `.dockerignore` evita copiar al contexto `node_modules`, `.env`, la base SQLite y los `*.traineddata` de Windows.
+
 ## API
 
 | Método | Ruta | Auth | Descripción |
@@ -74,5 +88,5 @@ Vite proxya `/api` al backend, así que no hace falta configurar CORS.
 
 - «Compartir» usa la API nativa `navigator.share` cuando está disponible; si no, copia el enlace al portapapeles.
 - El primer OCR descarga el modelo de español (`spa.traineddata`); requiere conexión la primera vez.
-- Cambiar `JWT_SECRET` en `backend/.env` antes de exponer el proyecto.
+- Cambiar `JWT_SECRET` en `backend/.env` (o con `-e JWT_SECRET=...` en Docker) antes de exponer el proyecto.
 - La base SQLite se crea en `backend/cancionero.db` (configurable con `DB_PATH`).

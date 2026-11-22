@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -10,6 +11,9 @@ const categoriesRoutes = require('./routes/categories.routes');
 const songsRoutes = require('./routes/songs.routes');
 const playlistsRoutes = require('./routes/playlists.routes');
 const ocrRoutes = require('./routes/ocr.routes');
+
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const HAS_FRONTEND = fs.existsSync(path.join(PUBLIC_DIR, 'index.html'));
 
 seed();
 
@@ -29,6 +33,17 @@ app.use('/api/playlists', auth, playlistsRoutes.router);
 app.use('/api/ocr', auth, ocrRoutes);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint no encontrado' }));
+
+if (HAS_FRONTEND) {
+  // En Docker el bundle de Vite se copia a /app/public; el router SPA usa History API.
+  app.use(express.static(PUBLIC_DIR));
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    return res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+  });
+} else {
+  app.use((req, res) => res.status(404).json({ error: 'Endpoint no encontrado' }));
+}
 
 app.use((err, req, res, next) => {
   if (err.code === 'LIMIT_FILE_SIZE') {
