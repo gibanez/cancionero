@@ -37,6 +37,10 @@ export class SongDetailView extends LitElement {
     }
   }
 
+  closePicker() {
+    this.modalOpen = false;
+  }
+
   render() {
     if (this.error) {
       return html`<div class="px-4 pt-6"><p class="text-sm text-brand-primary">${this.error}</p></div>`;
@@ -63,7 +67,9 @@ export class SongDetailView extends LitElement {
           <pre class="whitespace-pre-wrap font-sans text-sm leading-7 text-ink-primary">${this.song.lyrics}</pre>
         </div>
 
-        <playlist-modal .open=${this.modalOpen} .song=${this.song}></playlist-modal>
+        <playlist-modal .open=${this.modalOpen} .song=${this.song}
+                        .onCancel=${() => this.closePicker()}
+                        .onConfirm=${() => this.closePicker()}></playlist-modal>
       </div>
     `;
   }

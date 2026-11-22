@@ -32,7 +32,10 @@ export class PlaylistModal extends LitElement {
   }
 
   updated(changed) {
-    if (changed.has('open') && this.open) this.load();
+    if (this.open && (changed.has('open') || changed.has('song'))) {
+      // Cargar fuera del ciclo de actualización para no encadenar otro update.
+      queueMicrotask(() => this.load());
+    }
   }
 
   async load() {
@@ -80,7 +83,6 @@ export class PlaylistModal extends LitElement {
       for (const id of this.selectedIds) {
         await api.post(`/playlists/${id}/songs`, { songId: this.song.id });
       }
-      this.open = false;
       if (this.onConfirm) this.onConfirm(this.selectedIds.length);
     } catch (err) {
       this.error = err.message;
@@ -90,7 +92,6 @@ export class PlaylistModal extends LitElement {
   }
 
   cancel() {
-    this.open = false;
     if (this.onCancel) this.onCancel();
   }
 

@@ -105,6 +105,11 @@ export class SongsListView extends LitElement {
     this.modalOpen = true;
   }
 
+  closePicker() {
+    this.modalOpen = false;
+    this.selectedSong = null;
+  }
+
   askDelete(song) {
     this.error = '';
     this.deleteTarget = song;
@@ -175,7 +180,9 @@ export class SongsListView extends LitElement {
           `)}
         </div>
 
-        <playlist-modal .open=${this.modalOpen} .song=${this.selectedSong}></playlist-modal>
+        <playlist-modal .open=${this.modalOpen} .song=${this.selectedSong}
+                        .onCancel=${() => this.closePicker()}
+                        .onConfirm=${() => this.closePicker()}></playlist-modal>
 
         <confirm-modal
           .open=${Boolean(this.deleteTarget)}
