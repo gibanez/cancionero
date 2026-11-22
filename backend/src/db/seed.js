@@ -1,4 +1,6 @@
+const path = require('path');
 const bcrypt = require('bcrypt');
+require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 const db = require('./database');
 
 const categories = [
@@ -56,9 +58,13 @@ function placeholderLyrics(title, author) {
     'o subiendo una imagen con OCR.';
 }
 
+const DEFAULT_USERNAME = 'viriginia';
+const DEFAULT_PASSWORD = 'MarVirCor';
+const LEGACY_USERNAME = 'admin';
+
 function seed() {
-  const username = process.env.ADMIN_USERNAME || 'admin';
-  const password = process.env.ADMIN_PASSWORD || '123';
+  const username = process.env.ADMIN_USERNAME || DEFAULT_USERNAME;
+  const password = process.env.ADMIN_PASSWORD || DEFAULT_PASSWORD;
 
   const insertUser = db.prepare(
     'INSERT INTO users (username, password_hash) VALUES (?, ?)'
@@ -66,8 +72,17 @@ function seed() {
   const findUser = db.prepare('SELECT id FROM users WHERE username = ?');
   let user = findUser.get(username);
   if (!user) {
-    const result = insertUser.run(username, bcrypt.hashSync(password, 10));
-    user = { id: result.lastInsertRowid };
+    const legacyUser = findUser.get(LEGACY_USERNAME);
+    if (legacyUser) {
+      // Migración del usuario de la demo: se conserva el id para no perder sus listas.
+      const passwordHash = bcrypt.hashSync(password, 10);
+      db.prepare('UPDATE users SET username = ?, password_hash = ? WHERE id = ?')
+        .run(username, passwordHash, legacyUser.id);
+      user = { id: legacyUser.id };
+    } else {
+      const result = insertUser.run(username, bcrypt.hashSync(password, 10));
+      user = { id: result.lastInsertRowid };
+    }
   }
 
   const insertCategory = db.prepare(
@@ -138,7 +153,7 @@ function seed() {
 
 if (require.main === module) {
   const user = seed();
-  console.log(`Base de datos lista. Usuario: ${process.env.ADMIN_USERNAME || 'admin'} (id ${user.id})`);
+  console.log(`Base de datos lista. Usuario: ${process.env.ADMIN_USERNAME || DEFAULT_USERNAME} (id ${user.id})`);
 }
 
 module.exports = seed;

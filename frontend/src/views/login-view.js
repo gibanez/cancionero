@@ -67,7 +67,6 @@ export class LoginView extends LitElement {
               INGRESAR
             </button>
           </form>
-          <p class="mt-6 text-center text-xs text-ink-secondary">Demo: admin / 123</p>
         </div>
       </div>
     `;

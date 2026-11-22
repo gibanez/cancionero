@@ -151,8 +151,8 @@ CREATE TABLE IF NOT EXISTS playlist_songs (
 
 #### Autenticación
 * `POST /api/auth/login`
-  * **Body:** `{ "username": "admin", "password": "123" }`
-  * **Response:** `{ "token": "jwt_token", "user": { "id": 1, "username": "admin" } }`
+  * **Body:** `{ "username": "viriginia", "password": "MarVirCor" }`
+  * **Response:** `{ "token": "jwt_token", "user": { "id": 1, "username": "viriginia" } }`
 
 #### Categorías (Requiere Auth)
 * `GET /api/categories`
