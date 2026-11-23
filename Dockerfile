@@ -1,5 +1,8 @@
 # --- Etapa 1: Build del Frontend (Lit + Tailwind + Vite) ---
 FROM node:22-alpine AS frontend-builder
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false \
+    NPM_CONFIG_AUDIT=false \
+    NPM_CONFIG_FUND=false
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
@@ -8,6 +11,9 @@ RUN npm run build
 
 # --- Etapa 2: Backend y servidor final ---
 FROM node:22-slim
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false \
+    NPM_CONFIG_AUDIT=false \
+    NPM_CONFIG_FUND=false
 
 # Dependencias del sistema necesarias para compilar better-sqlite3 y ejecutar Tesseract OCR
 RUN apt-get update && apt-get install -y --no-install-recommends \
