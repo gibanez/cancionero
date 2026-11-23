@@ -1,0 +1,29 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+
+    steps:
+      - name: Deploy por SSH
+        if: env.DEPLOY_HOST != ''
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            cd /srv/apps/cancionero
+            ./deploy.sh
+
+      - name: Sin secretos de deploy configurados
+        if: env.DEPLOY_HOST == ''
+        run: echo "DEPLOY_HOST no configurado; se saltea el deploy. Configurá los secrets para activarlo."

@@ -1,0 +1,30 @@
+services:
+  cancionero:
+    build: .
+    image: cancionero:${IMAGE_TAG:-latest}
+    container_name: cancionero
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - cancionero_data:/data
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Definí JWT_SECRET en el .env del servidor}
+      DB_PATH: /data/cancionero.db
+      TESSERACT_CACHE_PATH: /data/tesseract-cache
+      NODE_ENV: production
+      PORT: 3001
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - 'fetch("http://127.0.0.1:3001/api/health").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  cancionero_data:
+    name: ${VOLUME_NAME:-cancionero_data}

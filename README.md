@@ -79,6 +79,43 @@ Sin ese mount, cada contenedor nuevo arranca con una SQLite vacía y se vuelven 
 
 Los datos iniciales se cargan una sola vez (queda registrado en `app_meta`): borrar una categoría, canción o lista **no** se revierte al reiniciar.
 
+## Deploy automático
+
+Para no volver a tener el problema de una imagen vieja en Portainer, el deploy usa un tag por commit en vez de `latest` mutable y verifica el bundle antes de terminar.
+
+Archivos nuevos:
+
+- `docker-compose.yml`: construye y levanta el contenedor con `image: cancionero:<commit>` y el volumen `/data`.
+- `deploy.sh`: hace `git pull`, build sin caché, reemplaza el contenedor y comprueba que el JS que sirve coincida con el de la imagen.
+- `.github/workflows/deploy.yml`: ejecuta `deploy.sh` por SSH en cada push a `main`.
+
+Configuración única en el servidor:
+
+```bash
+cd /srv/apps/cancionero
+cp .env.example .env
+# Editá .env: JWT_SECRET largo y aleatorio. Si tu volumen no se llama cancionero_data,
+# poné su nombre real en VOLUME_NAME.
+chmod +x deploy.sh
+./deploy.sh
+```
+
+El script detecta un contenedor viejo llamado `cancionero`, verifica que su montaje `/data` apunte al mismo volumen y recién entonces lo reemplaza. Los datos se conservan porque viven en el volumen, no en el contenedor.
+
+Para que se dispare solo al hacer `git push`, agregá estos secrets en GitHub → Settings → Secrets and variables → Actions:
+
+| Secret | Valor |
+| --- | --- |
+| `DEPLOY_HOST` | IP o dominio del servidor |
+| `DEPLOY_USER` | usuario SSH (ej. `root`) |
+| `DEPLOY_KEY` | clave privada SSH con acceso al servidor |
+
+Si el path del repo en el servidor no es `/srv/apps/cancionero`, cambiá la línea `cd ...` en `.github/workflows/deploy.yml`.
+
+Cada deploy imprime el bundle verificado, por ejemplo `OK: cancionero:97cc385 sirve index-KkI3T9ET.js y /api/health responde`. Si la imagen y el contenedor no coinciden, el script falla y muestra los logs en vez de dejar una versión vieja corriendo.
+
+Si preferís no usar GitHub Actions, podés correr `./deploy.sh` a mano o con un cron; el script es el mismo.
+
 ## API
 
 | Método | Ruta | Auth | Descripción |
