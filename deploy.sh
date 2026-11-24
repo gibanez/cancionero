@@ -34,20 +34,39 @@ if [ -z "$EXPECTED" ]; then
 fi
 echo "==> Bundle esperado: $EXPECTED"
 
+# Si el volumen configurado no tiene DB, mostrar otros volúmenes de la app que sí la tienen.
+db_candidates=""
+for candidate in $(docker volume ls --format '{{.Name}}' | grep -i cancionero || true); do
+  [ "$candidate" = "$VOLUME_NAME" ] && continue
+  FOUND="$(docker run --rm -v "$candidate":/data --entrypoint sh "$IMAGE" \
+    -c '[ -f /data/cancionero.db ] && echo yes || echo no' 2>/dev/null || true)"
+  [ "$FOUND" = yes ] && db_candidates="$db_candidates $candidate"
+done
+
 # No crear volúmenes nuevos en silencio: eso fue lo que dejó una base vacía.
 if docker volume inspect "$VOLUME_NAME" >/dev/null 2>&1; then
   HAS_DB="$(docker run --rm -v "$VOLUME_NAME":/data --entrypoint sh "$IMAGE" \
     -c '[ -f /data/cancionero.db ] && echo yes || echo no' 2>/dev/null || true)"
   if [ "$HAS_DB" != yes ] && [ "${ALLOW_EMPTY_VOLUME:-0}" != 1 ]; then
     echo "ERROR: el volumen $VOLUME_NAME existe pero no contiene cancionero.db." >&2
-    echo "       Aborto para no pisar datos. Si es una instalación nueva:" >&2
-    echo "       ALLOW_EMPTY_VOLUME=1 ./deploy.sh" >&2
+    if [ -n "$db_candidates" ]; then
+      echo "       Volúmenes de la app que SÍ tienen DB:$db_candidates" >&2
+      echo "       Poné el nombre correcto en VOLUME_NAME en .env antes de seguir." >&2
+    else
+      echo "       Aborto para no pisar datos. Si es una instalación nueva:" >&2
+      echo "       ALLOW_EMPTY_VOLUME=1 ./deploy.sh" >&2
+    fi
     exit 1
   fi
 else
   if [ "${ALLOW_EMPTY_VOLUME:-0}" != 1 ]; then
     echo "ERROR: el volumen $VOLUME_NAME no existe. No lo voy a crear automáticamente." >&2
-    echo "       Si es una instalación nueva: ALLOW_EMPTY_VOLUME=1 ./deploy.sh" >&2
+    if [ -n "$db_candidates" ]; then
+      echo "       Volúmenes de la app que SÍ tienen DB:$db_candidates" >&2
+      echo "       Poné el nombre correcto en VOLUME_NAME en .env antes de seguir." >&2
+    else
+      echo "       Si es una instalación nueva: ALLOW_EMPTY_VOLUME=1 ./deploy.sh" >&2
+    fi
     exit 1
   fi
 fi
