@@ -86,7 +86,7 @@ Para no volver a tener el problema de una imagen vieja en Portainer, el deploy u
 Archivos nuevos:
 
 - `docker-compose.yml`: construye y levanta el contenedor con `image: cancionero:<commit>` y el volumen `/data`.
-- `deploy.sh`: hace `git pull`, build sin caché, reemplaza el contenedor y comprueba que el JS que sirve coincida con el de la imagen.
+- `deploy.sh`: hace `git pull`, build sin caché, reemplaza el contenedor y comprueba que el JS que sirve coincida con el de la imagen. Antes de tocar nada valida que el volumen exista y contenga `cancionero.db`, y guarda un backup en `backups/` (ignorado por git).
 - `.github/workflows/deploy.yml`: ejecuta `deploy.sh` por SSH en cada push a `main`.
 
 Configuración única en el servidor:
@@ -100,7 +100,15 @@ chmod +x deploy.sh
 ./deploy.sh
 ```
 
-El script detecta un contenedor viejo llamado `cancionero`, verifica que su montaje `/data` apunte al mismo volumen y recién entonces lo reemplaza. Los datos se conservan porque viven en el volumen, no en el contenedor.
+El script detecta un contenedor viejo llamado `cancionero`, verifica que su montaje `/data` apunte al mismo volumen y recién entonces lo reemplaza. Si el volumen no existe o no tiene `cancionero.db`, **aborta en vez de crear uno vacío**: así evita que el seed vuelva a cargar las canciones de ejemplo y parezca que se borraron los datos. Antes de reemplazar el contenedor copia la base a `backups/cancionero-<fecha>.db`.
+
+En una instalación nueva (todavía no hay base) el primer deploy necesita habilitar explícitamente la creación:
+
+```bash
+ALLOW_EMPTY_VOLUME=1 ./deploy.sh
+```
+
+Usalo **solo** la primera vez: si lo usás sobre una instalación existente, se creará una base vacía. Si tu contenedor anterior usaba otro volumen o un bind mount, poné ese nombre real en `VOLUME_NAME` de `.env` antes de deployar; el script se niega a seguir si el montaje no coincide.
 
 Para que se dispare solo al hacer `git push`, agregá estos secrets en GitHub → Settings → Secrets and variables → Actions:
 

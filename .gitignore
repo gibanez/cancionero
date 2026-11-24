@@ -6,3 +6,4 @@ backend/.env
 *.log
 *.traineddata
 .DS_Store
+backups/
