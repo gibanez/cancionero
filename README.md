@@ -87,7 +87,7 @@ Archivos nuevos:
 
 - `docker-compose.yml`: construye y levanta el contenedor con `image: cancionero:<commit>` y el volumen `/data`.
 - `deploy.sh`: hace `git pull`, build sin caché, reemplaza el contenedor y comprueba que el JS que sirve coincida con el de la imagen. Antes de tocar nada valida que el volumen exista y contenga `cancionero.db`, y guarda un backup en `backups/` (ignorado por git).
-- `.github/workflows/deploy.yml`: ejecuta `deploy.sh` por SSH en cada push a `main`.
+- `.github/workflows/deploy.yml`: actualiza el repo por SSH y ejecuta `deploy.sh` en cada push a `main`. Hace `git pull` **antes** de ejecutarlo para que el script que corre sea siempre el del commit recién pusheado, no una copia vieja en disco.
 
 Configuración única en el servidor:
 
